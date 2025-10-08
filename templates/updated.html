@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎵 Live Music Quiz</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background:#fafafa; color:#1a1a1a; min-height:100vh; display:flex; flex-direction:column; }
+    .header { background:white; padding:1.5rem 2rem; border-bottom:1px solid #e5e5e5; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+    .header h1 { font-size:1.5rem; font-weight:600; color:#1a1a1a; }
+    .main-container { display:flex; flex:1; max-width:1400px; margin:0 auto; width:100%; gap:2rem; padding:2rem; }
+    .game-area { flex:1; background:white;  border-radius:12px; padding:2rem;  box-shadow:0 4px 6px rgba(0,0,0,.05);  border:1px solid #e5e5e5;  display:flex;  flex-direction:column; }
+    .progress-container { display:flex; align-items:center; gap:15px; margin-bottom:2rem; }
+    .progress-bar { flex:1; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#6366f1,#8b5cf6); border-radius:4px; width:0%; transition:width .1s ease; }
+    .progress-text { font-size:.875rem; font-weight:500; color:#64748b; min-width:80px; text-align:right; }
+    .timer-container { text-align:center; margin-bottom:2rem; }
+    .timer { font-size:1.25rem; font-weight:600; color:#6366f1; background:#f0f9ff; padding:.75rem 1.5rem; border-radius:50px; display:inline-block; border:1px solid #e0e7ff; }
+    .game-content { display:flex; align-items:flex-start; gap:2.5rem; flex:0; }
+    .album-container { flex-shrink:0; }
+    .album-cover { width:220px; height:220px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:12px; display:flex; align-items:center; justify-content:center; color:white; font-size:3.5rem; font-weight:500; box-shadow:0 12px 40px rgba(0,0,0,.15); object-fit:cover; }
+    .quiz-form-section { flex:1; display:flex; flex-direction:column; justify-content:flex-start; min-width:0; }
+    .form-container { max-width:none; margin:0; }
+    .form-group { margin-bottom:1.5rem; }
+    .form-group label { display:block; margin-bottom:.5rem; font-weight:600; color:#374151; font-size:.875rem; text-transform:uppercase; letter-spacing:.5px; }
+    .form-group input { width:100%; padding:.875rem 1rem; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem; transition:all .2s ease; background:white; }
+    .form-group input:focus { outline:none; border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.1); }
+    .control-buttons {display: flex;flex-direction: column; align-items: center; gap: 0.75rem;margin-top: 2rem;}
+    .control-buttons #startGameBtn {flex: 0 0 auto; /* prevent stretching */}
+    .btn { padding:.875rem 1.5rem; border:none; border-radius:8px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s ease; flex:0 0 auto; }
+    .btn-primary { background:#6366f1; color:white; }
+    .btn-primary:hover { background:#5b21b6; transform:translateY(-1px); }
+    .status-inline { font-size:.875rem; color:#64748b; }
+    .status-inline.error { color:#dc2626; }
+    .status-inline.info { color:#475569; }
+    .btn-submit { background:#10b981; color:white; width:100%; padding:1rem 2rem; font-size:1rem; }
+    .btn-submit:hover { background:#059669; transform:translateY(-1px); box-shadow:0 4px 12px rgba(16,185,129,.3); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .results-section { background:#f8fafc; border-radius:12px; padding:1.5rem; margin-top:2rem; margin-bottom:2rem; border:1px solid #e2e8f0; }
+    .result-message { font-size:1.125rem; font-weight:600; text-align:center; margin-bottom:1.5rem; color:#1f2937; }
+    .score-details { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .score-item { display:flex; justify-content:space-between; align-items:center; padding:.75rem; background:white; border-radius:6px; font-size:.875rem; font-weight:500; }
+    .sidebar { width:300px; background:white; border-radius:12px; padding:1.5rem; box-shadow:0 4px 6px rgba(0,0,0,.05); border:1px solid #e5e5e5; height:fit-content; display:flex; flex-direction:column; gap:1.5rem; order:2; }
+    .stat-card { text-align:center; padding:1.5rem; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; }
+    .stat-title { font-size:.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.5rem; }
+    .stat-value { font-size:2rem; font-weight:800; color:#1f2937; margin-bottom:.25rem; }
+    .stat-value.accuracy { color:#10b981; }
+    .end-game-btn { background:#ef4444; color:white; border:none; border-radius:8px; padding:1rem 1.5rem; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s ease; margin-top:auto; }
+    .end-game-btn:hover { background:#dc2626; transform:translateY(-1px); }
+    .hidden { display:none !important; }
+    .final-results { background:white; border-radius:12px; padding:2rem; text-align:center; box-shadow:0 4px 6px rgba(0,0,0,.05); border:1px solid #e5e5e5; }
+    .final-results h2 { font-size:2rem; font-weight:800; color:#1f2937; margin-bottom:.5rem; }
+    .final-results .subtitle { color:#6b7280; font-size:1.125rem; margin-bottom:2rem; }
+    .final-score-container { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:1rem; margin-bottom:3rem; }
+    .final-score-item { background:#f8fafc; border-radius:8px; padding:1.5rem; border:1px solid #e2e8f0; }
+    .final-score-label { font-size:.75rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:.5rem; }
+    .final-score-value { font-size:2rem; font-weight:800; color:#1f2937; }
+    .final-score-value.accuracy { color:#10b981; }
+    .songs-list-container { text-align:left; margin-bottom:2rem; }
+    .songs-list-title { font-size:1.25rem; font-weight:700; color:#1f2937; margin-bottom:1.5rem; text-align:center; }
+    .songs-list { display:flex; flex-direction:column; gap:1rem; max-height:400px; overflow-y:auto; padding-right:.5rem; }
+    .song-item { display:flex; align-items:center; gap:1rem; padding:1rem; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; transition:all .2s ease; }
+    .song-item:hover { background:#f1f5f9; border-color:#cbd5e1; }
+    .song-number { background:#6366f1; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.875rem; font-weight:600; flex-shrink:0; }
+    .song-album-art { width:48px; height:48px; border-radius:6px; object-fit:cover; flex-shrink:0; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); display:flex; align-items:center; justify-content:center; color:white; font-size:1.25rem; font-weight:500; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+    .song-info { flex:1; min-width:0; }
+    .song-title { font-weight:600; color:#1f2937; margin-bottom:.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .song-artist { color:#6b7280; font-size:.875rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .song-result { display:flex; align-items:center; gap:.5rem; flex-shrink:0; }
+    .result-icon { font-size:1.25rem; }
+    .result-score { font-size:.875rem; font-weight:600; color:#6b7280; }
+    .play-again-btn, .share-btn {padding: 1rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; margin: 0.5rem;}
+    .play-again-btn {background: #6366f1;  color: white;}
+    .play-again-btn:hover {background: #4f46e5;transform: translateY(-2px);box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);}
+    .share-btn {background: #10b981;  color: white;}
+    .share-btn:hover {background: #059669;transform: translateY(-2px);box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);}
+
+    @media (max-width:768px){
+      .main-container { flex-direction:column; padding:1rem; gap:1rem; }
+      .sidebar { width:100%; order:-1; }
+      .game-content { flex-direction:column; align-items:center; text-align:center; gap:2rem; }
+      .album-cover { width:180px; height:180px; font-size:3rem; }
+      .control-buttons { flex-direction:column; align-items:flex-start; gap:.5rem; }
+    }
+  </style>
+</head>
+<body>
+<header class="header">
+  <h1>🎵 Do You Know Your Music</h1>
+</header>
+
+<div class="main-container">
+  <main class="game-area">
+    <div class="progress-container">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0:00 / 0:00</div>
+    </div>
+
+    <div id="gameContent" class="hidden">
+      <div class="timer-container"><div class="timer" id="timer">⏰ Response time: 0.0s</div></div>
+
+      <div class="game-content">
+        <div class="album-container">
+          <img id="albumArt" class="album-cover" src="" alt="🎵">
+        </div>
+
+        <div class="quiz-form-section">
+          <div class="form-container">
+            <div class="form-group">
+              <label for="songTitle">Song Title</label>
+              <input type="text" id="songTitle" placeholder="Enter the song title...">
+            </div>
+            <div class="form-group">
+              <label for="artistName">Artist Name</label>
+              <input type="text" id="artistName" placeholder="Enter the artist name...">
+            </div>
+            <button id="submitGuessBtn" class="btn btn-submit hidden">Submit Answer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="resultsSection" class="results-section hidden">
+      <div id="resultMessage" class="result-message">✅ Correct! "Song Title" by Artist Name</div>
+      <div id="scoreDetails" class="score-details">
+        <div class="score-item"><span>Title Score</span><span id="titleScoreResult">50/50</span></div>
+        <div class="score-item"><span>Artist Score</span><span id="artistScoreResult">30/30</span></div>
+        <div class="score-item"><span>Response Time</span><span id="timeResult">12.3s</span></div>
+      </div>
+    </div>
+
+    <div id="finalResults" class="final-results hidden">
+      <h2>🎉 Quiz Complete!</h2>
+      <p class="subtitle">Here's how you did on your musical journey</p>
+
+      <div class="final-score-container">
+        <div class="final-score-item"><div class="final-score-label">Total Score</div><div class="final-score-value total" id="finalTotalScore">750</div></div>
+        <div class="final-score-item"><div class="final-score-label">Accuracy</div><div class="final-score-value accuracy" id="finalAccuracy">85%</div></div>
+        <div class="final-score-item"><div class="final-score-label">Avg Time</div><div class="final-score-value average" id="finalAvgTime">12.4s</div></div>
+        <div class="final-score-item"><div class="final-score-label">Songs Correct</div><div class="final-score-value" id="finalCorrectCount">7/10</div></div>
+      </div>
+
+      <div class="songs-list-container">
+        <h3 class="songs-list-title">Songs You Listened To</h3>
+        <div class="songs-list" id="songsList"></div>
+      </div>
+
+      <div>
+        <button id="playAgainBtn" class="play-again-btn">🎵 Play Again</button>
+        <button id="shareResultsBtn" class="share-btn">📱 Share Results</button>
+      </div>
+    </div>
+
+    <div class="control-buttons">
+      <button id="startGameBtn" class="btn btn-primary">🎵 Start Game</button>
+      <button id="nextRoundBtn" class="btn btn-primary hidden">Next Round</button>
+      <span id="statusMsg" class="status-inline"></span>
+    </div>
+  </main>
+
+  <aside class="sidebar">
+    <div class="stat-card">
+      <div class="stat-title">Current Round</div>
+      <div class="stat-value" id="songCounter">1/10</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Accuracy</div>
+      <div class="stat-value accuracy" id="accuracyValue">0.0%</div>
+    </div>
+
+    <button id="endQuizBtn" class="end-game-btn">End Game</button>
+  </aside>
+</div>
+
+<script>
+  let currentTrack = null;
+  let quizActive = false;
+  let hasGameStarted = false; // <-- controls when messages may appear
+  let quizStartTime = null;
+  let responseTimeInterval = null;
+
+  // DOM elements
+  const gameContentEl = document.getElementById('gameContent');
+  const progressFillEl = document.getElementById('progressFill');
+  const progressTextEl = document.getElementById('progressText');
+  const startGameBtn = document.getElementById('startGameBtn');
+  const submitGuessBtn = document.getElementById('submitGuessBtn');
+  const nextRoundBtn = document.getElementById('nextRoundBtn');
+  const endQuizBtn = document.getElementById('endQuizBtn');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+  const shareResultsBtn = document.getElementById('shareResultsBtn');
+  const statusMsgEl = document.getElementById('statusMsg');
+
+  // Quiz state
+  let currentRound = 1;
+  const totalRounds = 10;
+  let totalScore = 0;
+  let quizSongs = [];
+  let allResponseTimes = [];
+  let correctAnswers = 0;
+  const MAX_POINTS_PER_ROUND = 100;
+
+  // Event listeners
+  startGameBtn.addEventListener('click', startGame);
+  submitGuessBtn.addEventListener('click', submitGuess);
+  nextRoundBtn.addEventListener('click', nextRound);
+  endQuizBtn.addEventListener('click', endQuiz);
+  playAgainBtn.addEventListener('click', playAgain);
+  shareResultsBtn.addEventListener('click', shareResults);
+
+  // Status helper: only show messages before the first round starts
+  function updateStatus(message, type='info') {
+    if (hasGameStarted) return; // suppress status once game has started
+    statusMsgEl.textContent = message || '';
+    statusMsgEl.classList.remove('error','info');
+    statusMsgEl.classList.add(type);
+  }
+  function clearStatus() {
+    statusMsgEl.textContent = '';
+    statusMsgEl.classList.remove('error','info');
+  }
+
+  async function checkCurrentTrack() {
+    try {
+      const resp = await fetch('/api/current-track');
+      const data = await resp.json();
+      if (data.success) {
+        currentTrack = data.track;
+        displayTrackInfo(data.track);
+        updateStatus('🎵 Track detected! Ready.', 'info');
+        return true;
+      } else {
+        updateStatus('🔇 No music playing. Start a song on Spotify!', 'error');
+        return false;
+      }
+    } catch (e) {
+      updateStatus('❌ Error checking track. Is the server running?', 'error');
+      console.error(e);
+      return false;
+    }
+  }
+
+  async function skipToNextTrack() {
+    try {
+      const resp = await fetch('/api/skip-track', { method: 'POST', headers: { 'Content-Type': 'application/json' }});
+      const data = await resp.json();
+      if (data.success && data.track) {
+        currentTrack = data.track;
+        displayTrackInfo(data.track);
+      } else if (data.success) {
+        setTimeout(async () => { await checkCurrentTrack(); }, 1000);
+      } else {
+        console.warn(data.message);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function displayTrackInfo(track) {
+    const albumArt = document.getElementById('albumArt');
+    if (track.image_url) {
+      albumArt.src = track.image_url;
+      albumArt.style.display = 'block';
+    } else {
+      albumArt.style.display = 'flex';
+      albumArt.innerHTML = '🎵';
+    }
+    const duration = track.duration_ms;
+    const currentProgress = track.progress_ms;
+    const progressPercent = (currentProgress / duration) * 100;
+    progressFillEl.style.width = progressPercent + '%';
+
+    const currentSeconds = Math.floor(currentProgress / 1000);
+    const totalSeconds = Math.floor(duration / 1000);
+    const currentTime = `${Math.floor(currentSeconds/60)}:${(currentSeconds%60).toString().padStart(2,'0')}`;
+    const totalTime = `${Math.floor(totalSeconds/60)}:${(totalSeconds%60).toString().padStart(2,'0')}`;
+    progressTextEl.textContent = `${currentTime} / ${totalTime}`;
+  }
+
+  async function startGame() {
+    updateStatus('🔍 Checking Spotify connection...', 'info');
+    const ok = await checkCurrentTrack();
+    if (ok) {
+      startQuizRound();
+    } else {
+      // Keep Start button visible so user can try again after starting music
+      startGameBtn.classList.remove('hidden');
+    }
+  }
+
+  function startQuizRound() {
+    if (!currentTrack) {
+      updateStatus('❌ No track detected. Press Start after you begin a song!', 'error');
+      return;
+    }
+    setAccuracyFromState();
+
+    hasGameStarted = true;         // 👈 lock status messages
+    clearStatus();                 // 👈 hide any pre-start message
+
+    quizActive = true;
+    quizStartTime = Date.now();
+
+    gameContentEl.classList.remove('hidden');
+    startGameBtn.classList.add('hidden');
+    submitGuessBtn.classList.remove('hidden');
+
+    document.getElementById('songTitle').value = '';
+    document.getElementById('artistName').value = '';
+
+    updateProgress();
+    startResponseTimeTracker();
+  }
+
+  function startResponseTimeTracker() {
+    const timerEl = document.getElementById('timer');
+    responseTimeInterval = setInterval(() => {
+      if (quizStartTime) {
+        const elapsed = (Date.now() - quizStartTime)/1000;
+        timerEl.textContent = `⏰ Response time: ${elapsed.toFixed(1)}s`;
+        updateSongProgress();
+      }
+    }, 100);
+  }
+
+  function stopResponseTimeTracker() {
+    if (responseTimeInterval) {
+      clearInterval(responseTimeInterval);
+      responseTimeInterval = null;
+    }
+  }
+
+  function getResponseTime() {
+    return quizStartTime ? (Date.now() - quizStartTime) / 1000 : null;
+  }
+
+  async function submitGuess() {
+    const title = document.getElementById('songTitle').value.trim();
+    const artist = document.getElementById('artistName').value.trim();
+    const responseTime = getResponseTime();
+
+    if (!title || !artist) { alert('Please enter both song title and artist!'); return; }
+    if (!currentTrack) { alert('No current track to check against!'); return; }
+
+    stopResponseTimeTracker();
+
+    try {
+      const resp = await fetch('/api/submit-guess', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          title, artist,
+          correct_title: currentTrack.title,
+          correct_artist: currentTrack.artist,
+          response_time: responseTime
+        })
+      });
+      const data = await resp.json();
+      if (data.success) displayResults(data);
+      else alert('Error submitting guess: ' + data.message);
+    } catch (e) {
+      alert('Error submitting guess!');
+      console.error(e);
+    }
+  }
+
+  function updateProgress() {
+    document.getElementById('songCounter').textContent = `${currentRound}/${totalRounds}`;
+  }
+
+  function updateSongProgress() {
+    if (!currentTrack || !quizActive) return;
+    const duration = currentTrack.duration_ms;
+    const startProgress = currentTrack.progress_ms;
+    const quizElapsed = Date.now() - quizStartTime;
+    const currentProgress = startProgress + quizElapsed;
+
+    const progressPercent = Math.min((currentProgress / duration) * 100, 100);
+    progressFillEl.style.width = progressPercent + '%';
+
+    const currentSeconds = Math.floor(currentProgress / 1000);
+    const totalSeconds = Math.floor(duration / 1000);
+    const currentTime = `${Math.floor(currentSeconds/60)}:${(currentSeconds%60).toString().padStart(2,'0')}`;
+    const totalTime = `${Math.floor(totalSeconds/60)}:${(totalSeconds%60).toString().padStart(2,'0')}`;
+    progressTextEl.textContent = `${currentTime} / ${totalTime}`;
+  }
+
+  function setAccuracyFromState() {
+  const roundsPlayed = quizSongs.length;
+  const accEl = document.getElementById('accuracyValue');
+  const pct = roundsPlayed
+    ? (totalScore / (roundsPlayed * MAX_POINTS_PER_ROUND)) * 100
+    : 0;
+  if (accEl) accEl.textContent = `${pct.toFixed(1)}%`;
+  }
+
+  function displayResults(data) {
+    stopResponseTimeTracker();
+    const wasCorrect = data.score.total_points > 60;
+
+    quizSongs.push({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      imageUrl: currentTrack.image_url,
+      userTitle: document.getElementById('songTitle').value.trim(),
+      userArtist: document.getElementById('artistName').value.trim(),
+      score: data.score,
+      correct: wasCorrect,
+      responseTime: data.score.response_time
+    });
+
+    allResponseTimes.push(data.score.response_time);
+    if (wasCorrect) correctAnswers++;
+    totalScore += data.score.total_points;
+
+    setAccuracyFromState();
+
+    document.getElementById('resultsSection').classList.remove('hidden');
+
+    const resultMessage = wasCorrect
+      ? `✅ Correct! "${currentTrack.title}" by ${currentTrack.artist}`
+      : `❌ "${currentTrack.title}" by ${currentTrack.artist}`;
+    document.getElementById('resultMessage').textContent = resultMessage;
+
+    document.getElementById('titleScoreResult').textContent = `${data.score.title_points}/50`;
+    document.getElementById('artistScoreResult').textContent = `${data.score.artist_points}/30`;
+    document.getElementById('timeResult').textContent = `${data.score.response_time.toFixed(1)}s`;
+
+    submitGuessBtn.classList.add('hidden');
+    nextRoundBtn.classList.remove('hidden');
+
+    quizActive = false;
+    quizStartTime = null;
+  }
+
+  async function nextRound() {
+    currentRound++;
+    if (currentRound > totalRounds) {
+      nextRoundBtn.classList.add('hidden');
+      showFinalResults();
+      return;
+    }
+
+    stopResponseTimeTracker();
+    document.getElementById('resultsSection').classList.add('hidden');
+
+    currentTrack = null; quizActive = false; quizStartTime = null;
+    document.getElementById('timer').textContent = '⏰ Response time: 0.0s';
+    progressTextEl.textContent = '0:00 / 0:00';
+    progressFillEl.style.width = '0%';
+    nextRoundBtn.classList.add('hidden');
+
+    // During gameplay, no banner/inline status messages
+    await skipToNextTrack();
+
+    if (currentTrack) {
+      document.getElementById('songTitle').value = '';
+      document.getElementById('artistName').value = '';
+      quizActive = true; quizStartTime = Date.now();
+      gameContentEl.classList.remove('hidden');
+      submitGuessBtn.classList.remove('hidden');
+      startResponseTimeTracker(); updateProgress();
+    } else {
+      // If we truly can't continue, just reveal Start again with a (now allowed) message after resetting flag
+      hasGameStarted = false;
+      updateStatus('🔇 No music playing. Start a song on Spotify and press Start again!', 'error');
+      startGameBtn.classList.remove('hidden');
+    }
+  }
+
+  function showFinalResults() {
+    nextRoundBtn.classList.add('hidden');
+    submitGuessBtn.classList.add('hidden');
+    gameContentEl.classList.add('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+
+    document.getElementById('finalResults').classList.remove('hidden');
+
+    const avgTime = allResponseTimes.length
+      ? allResponseTimes.reduce((a,b)=>a+b,0) / allResponseTimes.length
+      : 0;
+    const roundsPlayed = quizSongs.length;
+    const finalAccuracy = roundsPlayed ? (totalScore / (roundsPlayed * MAX_POINTS_PER_ROUND)) * 100: 0;
+
+    document.getElementById('finalTotalScore').textContent = totalScore.toLocaleString();
+    document.getElementById('finalAccuracy').textContent = `${finalAccuracy.toFixed(1)}%`;
+    document.getElementById('finalAvgTime').textContent = `${avgTime.toFixed(1)}s`;
+    document.getElementById('finalCorrectCount').textContent = `${correctAnswers}/${roundsPlayed}`;
+
+    const songsList = document.getElementById('songsList');
+    songsList.innerHTML = '';
+    quizSongs.forEach((song, i) => {
+      const el = document.createElement('div');
+      el.className = 'song-item';
+      const albumArtHTML = song.imageUrl
+        ? `<img src="${song.imageUrl}" alt="${song.title} album art" class="song-album-art">`
+        : `<div class="song-album-art">🎵</div>`;
+      el.innerHTML = `
+        <div class="song-number">${i+1}</div>
+        ${albumArtHTML}
+        <div class="song-info">
+          <div class="song-title">${song.title}</div>
+          <div class="song-artist">${song.artist}</div>
+        </div>
+        <div class="song-result">
+          <div class="result-icon">${song.correct ? '✅' : '❌'}</div>
+          <div class="result-score">${song.score.total_points}pts</div>
+        </div>`;
+      songsList.appendChild(el);
+    });
+  }
+
+  function playAgain() { window.location.reload(); }
+
+  function shareResults() {
+    const roundsPlayed = quizSongs.length;
+    const shareAccuracy = roundsPlayed ? (totalScore / (roundsPlayed * MAX_POINTS_PER_ROUND)) * 100: 0;
+    const shareText = `🎵 I just completed a music quiz!
+
+    Score: ${totalScore} points
+    Accuracy: ${shareAccuracy.toFixed(1)}%
+    Got ${correctAnswers}/${roundsPlayed} songs correct!
+
+    Can you beat my score?`;
+    if (navigator.share) {
+      navigator.share({ title:'My Music Quiz Results', text:shareText });
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareText).then(()=>alert('Results copied to clipboard!'));
+    } else {
+      const ta=document.createElement('textarea'); ta.value=shareText; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      alert('Results copied to clipboard!');
+    }
+  }
+
+  function endQuiz() {
+    nextRoundBtn.classList.add('hidden'); // always hide
+    if (quizSongs.length > 0) showFinalResults();
+    else playAgain();
+  }
+</script>
+</body>
+</html>
