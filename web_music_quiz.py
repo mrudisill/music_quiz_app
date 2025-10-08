@@ -14,7 +14,7 @@ from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
 
 from dotenv import load_dotenv
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 
 # --- Env & app setup ---
 load_dotenv()  # local dev convenience; harmless in prod
@@ -30,9 +30,10 @@ socketio = SocketIO(
         "http://localhost:5002",
         "https://mollyrudisill.com",
         "https://www.mollyrudisill.com",
+        "https://music-quiz-app-waru.onrender.com",
         "https://quiz.mollyrudisill.com",
     ],
-    async_mode="eventlet"
+    async_mode="threading"
 )
 
 # --- Spotify OAuth factory (session-based token cache) ---
