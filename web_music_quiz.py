@@ -111,7 +111,6 @@ class WebMusicQuiz:
 
     def calculate_score(self, user_title: str, user_artist: str, correct_title: str, correct_artist: str, response_time: float = None):
         """Calculate quiz score (title + artist = 100 points, no speed bonus)."""
-        from fuzzywuzzy import fuzz
         title_similarity = fuzz.ratio(user_title.lower().strip(), correct_title.lower().strip())
         artist_similarity = fuzz.ratio(user_artist.lower().strip(), correct_artist.lower().strip())
 
