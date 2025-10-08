@@ -3,6 +3,5 @@ flask-socketio==5.3.6
 eventlet==0.36.1
 python-dotenv==1.0.1
 spotipy==2.24.0
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.25.1
 gunicorn==22.0.0
+rapidfuzz==3.8.1
